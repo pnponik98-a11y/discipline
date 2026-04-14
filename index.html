@@ -6,9 +6,15 @@
     <meta name="theme-color" content="#1b1d21">
     <title>ProCounter Realtime</title>
     
-    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22ProCounter%22,%22short_name%22:%22Counter%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22#1b1d21%22,%22theme_color%22:%22#4b7bec%22,%22icons%22:[{%22src%22:%22https://cdn-icons-png.flaticon.com/512/2543/2543208.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
-
-    <style>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('SW запущен!', reg))
+                    .catch(err => console.log('Ошибка SW:', err));
+            });
+        }
+    </script>
         :root {
             --bg: #1b1d21;
             --text: #e0e0e0;
