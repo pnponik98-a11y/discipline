@@ -8,7 +8,7 @@
   "description": "Приложение для контроля тренировок и дисциплины",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2543/2543208.png",
+      "src": "my-icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
