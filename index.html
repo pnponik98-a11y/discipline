@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#1b1d21">
-    <title>ProCounter Ultra</title>
+    <title>discipline</title>
     
     <link rel="manifest" href="manifest.json">
 
@@ -45,7 +45,7 @@
         }
 
         .container { width: 100%; max-width: 450px; }
-        h1 { text-align: center; font-weight: 800; color: var(--accent); margin-bottom: 30px; }
+        h1 { text-align: center; font-weight: 800; color: var(--accent); margin-bottom: 30px; text-transform: lowercase; }
 
         .card { 
             background: var(--bg);
@@ -121,6 +121,20 @@
             margin-top: 15px; font-size: 0.75rem; color: #aaa;
             background: rgba(0,0,0,0.2); border-radius: 12px; padding: 12px;
         }
+
+        /* Кнопки бэкапа */
+        .backup-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .btn-backup {
+            padding: 12px;
+            font-size: 0.8rem;
+            background: #2d3138;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
     </style>
 </head>
 <body>
@@ -135,8 +149,17 @@
     <div id="counters-list"></div>
 
     <div class="diary-section">
-        <h3>📓 ЖУРНАЛ ЗАМЕРОВ</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0;">📓 ЖУРНАЛ ЗАМЕРОВ</h3>
+        </div>
+        
         <div class="diary-card" id="diary-logs"></div>
+
+        <div class="backup-controls">
+            <button class="btn-backup" onclick="exportData()">💾 СОХРАНИТЬ В ФАЙЛ</button>
+            <button class="btn-backup" onclick="document.getElementById('importFile').click()">📂 ЗАГРУЗИТЬ ФАЙЛ</button>
+            <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
+        </div>
     </div>
 </div>
 
@@ -147,6 +170,44 @@
     function save() {
         localStorage.setItem('proCounter_vUltimate', JSON.stringify(appState));
         render();
+    }
+
+    // Экспорт данных в JSON файл
+    function exportData() {
+        const dataStr = JSON.stringify(appState, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+        
+        const exportFileDefaultName = `discipline_backup_${new Date().toLocaleDateString()}.json`;
+        
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        linkElement.click();
+    }
+
+    // Импорт данных из JSON файла
+    function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (importedData.counters && importedData.diary) {
+                    if (confirm("Вы уверены? Это заменит все текущие данные данными из файла.")) {
+                        appState = importedData;
+                        save();
+                        alert("Данные успешно загружены!");
+                    }
+                } else {
+                    alert("Ошибка: Неверный формат файла.");
+                }
+            } catch (err) {
+                alert("Ошибка при чтении файла.");
+            }
+        };
+        reader.readAsText(file);
     }
 
     function addCounter() {
