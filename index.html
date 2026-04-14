@@ -12,12 +12,13 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('SW запущен!', reg))
-                    .catch(err => console.log('Ошибка SW:', err));
+                    .then(reg => console.log('SW запущен!'))
+                    .catch(err => console.error('Ошибка SW:', err));
             });
         }
     </script>
-    </script>
+
+    <style>
         :root {
             --bg: #1b1d21;
             --text: #e0e0e0;
@@ -61,10 +62,7 @@
             border: 1px solid var(--success);
         }
 
-        .timer-active {
-            border: 1px solid var(--warning);
-            box-shadow: 0 0 15px rgba(247, 183, 49, 0.2), 10px 10px 20px var(--shadow-dark);
-        }
+        .timer-active { border: 1px solid var(--warning); box-shadow: 0 0 15px rgba(247, 183, 49, 0.2); }
 
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         
@@ -75,8 +73,7 @@
 
         .count-display {
             font-size: 3.5rem; font-weight: 900; text-align: center;
-            margin: 20px 0; color: var(--text);
-            font-variant-numeric: tabular-nums;
+            margin: 20px 0; font-variant-numeric: tabular-nums;
         }
 
         .btn-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; }
@@ -129,7 +126,7 @@
 <body>
 
 <div class="container">
-    <h1>PRO STATS v3</h1>
+    <h1>PRO STATS</h1>
     
     <button onclick="addCounter()" style="width: 100%; margin-bottom: 35px; background: transparent; border: 2px dashed #444; box-shadow: none; color: #888;">
         + ДОБАВИТЬ ПЛИТУ
@@ -144,11 +141,11 @@
 </div>
 
 <script>
-    let appState = JSON.parse(localStorage.getItem('proCounterV3')) || { counters: [], diary: [] };
-    let activeTimers = {}; // Для хранения интервалов тиканья
+    let appState = JSON.parse(localStorage.getItem('proCounter_vUltimate')) || { counters: [], diary: [] };
+    let activeTimers = {};
 
     function save() {
-        localStorage.setItem('proCounterV3', JSON.stringify(appState));
+        localStorage.setItem('proCounter_vUltimate', JSON.stringify(appState));
         render();
     }
 
@@ -159,11 +156,11 @@
             value: 0,
             target: 0,
             resetTime: "00:00",
-            lastResetDate: new Date().toLocaleDateString(),
+            lastResetTS: 0,
             isTimer: false,
             timerRunning: false,
             startTime: null,
-            tempValue: 0, // Текущие секунды пока идет замер
+            tempValue: 0,
             history: []
         });
         save();
@@ -190,10 +187,10 @@
             c.startTime = Date.now();
             c.timerRunning = true;
             c.tempValue = 0;
-            // Запускаем тиканье
             activeTimers[id] = setInterval(() => {
                 c.tempValue = Math.floor((Date.now() - c.startTime) / 1000);
-                document.getElementById(`display-${id}`).innerText = formatTime(c.value + c.tempValue);
+                const disp = document.getElementById(`display-${id}`);
+                if (disp) disp.innerText = formatTime(c.value + c.tempValue);
             }, 1000);
         } else {
             clearInterval(activeTimers[id]);
@@ -204,30 +201,29 @@
             c.tempValue = 0;
             save();
         }
-        render(); // Обновляем кнопки
+        render();
     }
 
     function checkResets() {
         const now = new Date();
-        const todayStr = now.toLocaleDateString();
         let changed = false;
 
         appState.counters.forEach(c => {
-            const [rHour, rMin] = c.resetTime.split(':');
-            const resetTimeToday = new Date();
-            resetTimeToday.setHours(parseInt(rHour), parseInt(rMin), 0, 0);
+            const [h, m] = c.resetTime.split(':');
+            const resetPoint = new Date();
+            resetPoint.setHours(parseInt(h), parseInt(m), 0, 0);
 
-            if (now >= resetTimeToday && c.lastResetDate !== todayStr) {
+            if (now >= resetPoint && c.lastResetTS < resetPoint.getTime()) {
                 if (c.value > 0 || c.history.length > 0) {
                     appState.diary.push({ 
-                        date: c.lastResetDate, 
+                        date: new Date(c.lastResetTS || Date.now()).toLocaleDateString(), 
                         name: c.name, 
                         val: (c.isTimer ? formatTime(c.value) : c.value) 
                     });
                 }
                 c.value = 0;
                 c.history = [];
-                c.lastResetDate = todayStr;
+                c.lastResetTS = Date.now();
                 changed = true;
             }
         });
@@ -260,7 +256,7 @@
                         </button>` :
                         `<button class="btn-main" onclick="changeVal(${c.id}, 1)">+1</button>`
                     }
-                    <button onclick="resetValue(${c.id})">СБРОС</button>
+                    <button onclick="updateCounter(${c.id}, 'value', 0)">СБРОС</button>
                 </div>
 
                 <div class="settings-grid">
@@ -274,7 +270,7 @@
             `;
             list.appendChild(card);
         });
-        updateDiary();
+        updateDiaryDisplay();
     }
 
     function changeVal(id, delta) {
@@ -282,12 +278,7 @@
         if (c) { c.value += delta; save(); }
     }
 
-    function resetValue(id) {
-        const c = appState.counters.find(x => x.id === id);
-        if (c) { c.value = 0; c.history = []; save(); }
-    }
-
-    function updateDiary() {
+    function updateDiaryDisplay() {
         const diaryDiv = document.getElementById('diary-logs');
         diaryDiv.innerHTML = appState.diary.length ? appState.diary.slice(-15).reverse().map(l => `
             <div class="diary-item"><span>${l.date} — ${l.name}</span> <b>${l.val}</b></div>
@@ -300,7 +291,7 @@
         return `${m}:${sec.toString().padStart(2, '0')}`;
     }
 
-    setInterval(checkResets, 60000); // Проверка сброса каждую минуту
+    setInterval(checkResets, 10000);
     checkResets();
     render();
 </script>
