@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1b1d21">
+    <title>ProCounter Ultra</title>
+    
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22ProCounter%22,%22short_name%22:%22Counter%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22#1b1d21%22,%22theme_color%22:%22#4b7bec%22,%22icons%22:[{%22src%22:%22https://cdn-icons-png.flaticon.com/512/2543/2543208.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
+
+    <style>
+        :root {
+            --bg: #1b1d21;
+            --text: #e0e0e0;
+            --shadow-light: #25282e;
+            --shadow-dark: #111316;
+            --accent: #4b7bec;
+            --success: #1eb96a;
+            --warning: #f7b731;
+            --danger: #eb3b5a;
+        }
+
+        * { box-sizing: border-box; transition: background 0.3s, transform 0.2s, box-shadow 0.3s; }
+
+        body { 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            margin: 0; 
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container { width: 100%; max-width: 450px; }
+        h1 { text-align: center; font-weight: 800; color: var(--accent); margin-bottom: 30px; }
+
+        .card { 
+            background: var(--bg);
+            border-radius: 28px;
+            padding: 22px;
+            margin-bottom: 25px;
+            box-shadow: 10px 10px 20px var(--shadow-dark), -6px -6px 15px var(--shadow-light);
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .target-reached {
+            box-shadow: inset 6px 6px 12px #0f2d1e, inset -4px -4px 10px #2a3a2f, 10px 10px 20px var(--shadow-dark);
+            border: 1px solid var(--success);
+        }
+
+        .timer-active { border: 1px solid var(--warning); box-shadow: 0 0 15px rgba(247, 183, 49, 0.2), 10px 10px 20px var(--shadow-dark); }
+
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        input[type="text"] { background: transparent; border: none; font-size: 1.2rem; font-weight: 800; color: var(--text); width: 80%; outline: none; }
+
+        .count-display { font-size: 3.5rem; font-weight: 900; text-align: center; margin: 20px 0; color: var(--text); font-variant-numeric: tabular-nums; }
+
+        .btn-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; }
+        button { border: none; border-radius: 18px; padding: 18px; font-weight: 700; font-size: 0.9rem; cursor: pointer; background: var(--bg); box-shadow: 6px 6px 12px var(--shadow-dark), -4px -4px 10px var(--shadow-light); color: var(--text); }
+        button:active { box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -2px -2px 6px var(--shadow-light); transform: scale(0.97); }
+
+        .btn-main { background: var(--accent); color: white; }
+        .btn-timer-stop { background: var(--danger); color: white; }
+        .btn-timer-start { background: var(--warning); color: #1b1d21; }
+        .btn-del { width: 40px; height: 40px; border-radius: 50%; color: var(--danger); padding:0; }
+
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 25px; font-size: 0.8rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; color: #888; }
+        input[type="number"], input[type="time"] { border-radius: 10px; border: none; background: #111316; padding: 8px; margin-top: 6px; color: var(--text); box-shadow: inset 2px 2px 5px #000; outline: none; width: 100%; }
+
+        .diary-section { width: 100%; margin-top: 40px; margin-bottom: 50px; }
+        .diary-card { background: var(--bg); border-radius: 25px; padding: 20px; box-shadow: inset 6px 6px 12px var(--shadow-dark), inset -4px -4px 10px var(--shadow-light); }
+        .diary-item { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.03); display: flex; justify-content: space-between; font-size: 0.9rem; }
+        .history-list { margin-top: 15px; font-size: 0.75rem; color: #aaa; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>PRO STATS ULTIMATE</h1>
+    <button onclick="addCounter()" style="width: 100%; margin-bottom: 35px; background: transparent; border: 2px dashed #444; box-shadow: none; color: #888;">+ ДОБАВИТЬ ПЛИТУ</button>
+    <div id="counters-list"></div>
+    <div class="diary-section">
+        <h3>📓 ЖУРНАЛ ЗАМЕРОВ</h3>
+        <div class="diary-card" id="diary-logs"></div>
+    </div>
+</div>
+
+<script>
+    // Используем уникальный ключ для этой версии, чтобы избежать старых конфликтов
+    let appState = JSON.parse(localStorage.getItem('proCounter_vUltimate')) || { counters: [], diary: [] };
+    let activeTimers = {};
+
+    function save() {
+        localStorage.setItem('proCounter_vUltimate', JSON.stringify(appState));
+        render();
+    }
+
+    function addCounter() {
+        appState.counters.push({
+            id: Date.now(),
+            name: "Счётчик",
+            value: 0,
+            target: 0,
+            resetTime: "00:00",
+            lastResetTS: 0, // Метка времени последнего сброса
+            isTimer: false,
+            timerRunning: false,
+            startTime: null,
+            tempValue: 0,
+            history: []
+        });
+        save();
+    }
+
+    function deleteCounter(id) {
+        if(confirm("Удалить?")) {
+            clearInterval(activeTimers[id]);
+            appState.counters = appState.counters.filter(c => c.id !== id);
+            save();
+        }
+    }
+
+    function updateCounter(id, field, val) {
+        const c = appState.counters.find(x => x.id === id);
+        if (c) { c[field] = val; save(); }
+    }
+
+    function toggleTimer(id) {
+        const c = appState.counters.find(x => x.id === id);
+        if (!c) return;
+        if (!c.timerRunning) {
+            c.startTime = Date.now();
+            c.timerRunning = true;
+            c.tempValue = 0;
+            activeTimers[id] = setInterval(() => {
+                c.tempValue = Math.floor((Date.now() - c.startTime) / 1000);
+                const disp = document.getElementById(`display-${id}`);
+                if (disp) disp.innerText = formatTime(c.value + c.tempValue);
+            }, 1000);
+        } else {
+            clearInterval(activeTimers[id]);
+            const diff = Math.floor((Date.now() - c.startTime) / 1000);
+            c.value += diff;
+            c.history.push(`${new Date().toLocaleTimeString()} — ${diff} сек.`);
+            c.timerRunning = false;
+            c.tempValue = 0;
+            save();
+        }
+        render();
+    }
+
+    // ЖЕЛЕЗНАЯ ЛОГИКА СБРОСА
+    function checkResets() {
+        const now = new Date();
+        let changed = false;
+
+        appState.counters.forEach(c => {
+            const [h, m] = c.resetTime.split(':');
+            const resetPoint = new Date();
+            resetPoint.setHours(parseInt(h), parseInt(m), 0, 0);
+
+            // Если время сброса сегодня уже прошло
+            if (now >= resetPoint) {
+                // И если мы еще НЕ сбрасывали после этой точки времени
+                if (c.lastResetTS < resetPoint.getTime()) {
+                    if (c.value > 0 || c.history.length > 0) {
+                        appState.diary.push({ 
+                            date: new Date(c.lastResetTS || Date.now()).toLocaleDateString(), 
+                            name: c.name, 
+                            val: (c.isTimer ? formatTime(c.value) : c.value) 
+                        });
+                    }
+                    c.value = 0;
+                    c.history = [];
+                    c.lastResetTS = Date.now(); // Ставим метку, что сброс выполнен прямо сейчас
+                    changed = true;
+                    console.log(`Сброшен счетчик: ${c.name}`);
+                }
+            }
+        });
+        if (changed) save();
+    }
+
+    function render() {
+        const list = document.getElementById('counters-list');
+        list.innerHTML = '';
+        appState.counters.forEach(c => {
+            const isReached = c.target > 0 && c.value >= c.target;
+            const card = document.createElement('div');
+            card.className = `card ${isReached ? 'target-reached' : ''} ${c.timerRunning ? 'timer-active' : ''}`;
+            card.innerHTML = `
+                <div class="card-header"><input type="text" value="${c.name}" onchange="updateCounter(${c.id}, 'name', this.value)"><button class="btn-del" onclick="deleteCounter(${c.id})">✕</button></div>
+                <div class="count-display" id="display-${c.id}">${c.isTimer ? formatTime(c.value + (c.tempValue || 0)) : c.value}</div>
+                <div class="btn-grid">
+                    ${c.isTimer ? `<button class="${c.timerRunning ? 'btn-timer-stop' : 'btn-timer-start'}" onclick="toggleTimer(${c.id})">${c.timerRunning ? '🛑 СТОП' : '⏱ СТАРТ'}</button>` : `<button class="btn-main" onclick="changeVal(${c.id}, 1)">+1</button>`}
+                    <button onclick="resetManually(${c.id})">СБРОС</button>
+                </div>
+                <div class="settings-grid">
+                    <div class="setting-item">Цель: <input type="number" value="${c.target}" onchange="updateCounter(${c.id}, 'target', parseInt(this.value))"></div>
+                    <div class="setting-item">Сброс: <input type="time" value="${c.resetTime}" onchange="updateCounter(${c.id}, 'resetTime', this.value)"></div>
+                    <div style="grid-column: span 2; margin-top: 15px;"><label><input type="checkbox" ${c.isTimer ? 'checked' : ''} onchange="updateCounter(${c.id}, 'isTimer', this.checked)"> Режим замера</label></div>
+                </div>
+                ${c.history.length > 0 ? `<div class="history-list">${c.history.slice(-3).reverse().join('<br>')}</div>` : ''}
+            `;
+            list.appendChild(card);
+        });
+        updateDiaryDisplay();
+    }
+
+    function changeVal(id, delta) {
+        const c = appState.counters.find(x => x.id === id);
+        if (c) { c.value += delta; save(); }
+    }
+
+    function resetManually(id) {
+        if(confirm("Обнулить текущий счёт?")) {
+            const c = appState.counters.find(x => x.id === id);
+            if (c) { c.value = 0; c.history = []; save(); }
+        }
+    }
+
+    function updateDiaryDisplay() {
+        const diaryDiv = document.getElementById('diary-logs');
+        diaryDiv.innerHTML = appState.diary.length ? appState.diary.slice(-15).reverse().map(l => `
+            <div class="diary-item"><span>${l.date} — ${l.name}</span> <b>${l.val}</b></div>
+        `).join('') : '<p style="text-align:center; color:#555;">Журнал пуст</p>';
+    }
+
+    function formatTime(s) {
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        return `${m}:${sec.toString().padStart(2, '0')}`;
+    }
+
+    setInterval(checkResets, 10000); // Проверяем каждые 10 секунд
+    checkResets();
+    render();
+</script>
+</body>
+</html>
