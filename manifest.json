@@ -1,0 +1,17 @@
+{
+  "name": "ProCounter Ultimate",
+  "short_name": "ProStats",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#1b1d21",
+  "theme_color": "#4b7bec",
+  "description": "Продвинутый счетчик тренировок и активности",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2543/2543208.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
