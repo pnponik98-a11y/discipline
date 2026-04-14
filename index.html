@@ -11,130 +11,80 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('SW запущен!'))
-                    .catch(err => console.error('Ошибка SW:', err));
+                navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
             });
         }
     </script>
 
     <style>
         :root {
-            --bg: #1b1d21;
-            --text: #e0e0e0;
-            --shadow-light: #25282e;
-            --shadow-dark: #111316;
-            --accent: #4b7bec;
-            --success: #1eb96a;
-            --warning: #f7b731;
-            --danger: #eb3b5a;
+            --bg: #1b1d21; --text: #e0e0e0; --shadow-light: #25282e; --shadow-dark: #111316;
+            --accent: #4b7bec; --success: #1eb96a; --warning: #f7b731; --danger: #eb3b5a;
         }
 
         * { box-sizing: border-box; transition: background 0.3s, transform 0.2s, box-shadow 0.3s; }
 
         body { 
-            font-family: 'Segoe UI', Roboto, sans-serif; 
-            background: var(--bg); 
-            color: var(--text); 
-            margin: 0; 
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
+            font-family: 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); 
+            margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh;
         }
 
         .container { width: 100%; max-width: 450px; }
         h1 { text-align: center; font-weight: 800; color: var(--accent); margin-bottom: 30px; text-transform: lowercase; }
 
         .card { 
-            background: var(--bg);
-            border-radius: 28px;
-            padding: 22px;
-            margin-bottom: 25px;
+            background: var(--bg); border-radius: 28px; padding: 22px; margin-bottom: 25px;
             box-shadow: 10px 10px 20px var(--shadow-dark), -6px -6px 15px var(--shadow-light);
-            border: 1px solid rgba(255,255,255,0.03);
-            position: relative;
+            border: 1px solid rgba(255,255,255,0.03); position: relative;
         }
 
-        .target-reached {
-            box-shadow: inset 6px 6px 12px #0f2d1e, inset -4px -4px 10px #2a3a2f, 10px 10px 20px var(--shadow-dark);
-            border: 1px solid var(--success);
-        }
-
+        .target-reached { border: 1px solid var(--success); box-shadow: 0 0 15px rgba(30, 185, 106, 0.15); }
         .timer-active { border: 1px solid var(--warning); box-shadow: 0 0 15px rgba(247, 183, 49, 0.2); }
 
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .streak-badge {
+            background: rgba(247, 183, 49, 0.1); color: var(--warning); padding: 4px 10px;
+            border-radius: 10px; font-size: 0.75rem; font-weight: bold;
+        }
+
+        .redemption-badge {
+            background: var(--danger); color: white; padding: 4px 8px; border-radius: 8px;
+            font-size: 0.7rem; font-weight: 800; animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+
+        .shame-msg {
+            color: var(--danger); font-size: 0.8rem; font-style: italic; text-align: center;
+            margin-top: 15px; padding: 8px; background: rgba(235, 59, 90, 0.05); border-radius: 12px;
+        }
+
+        input[type="text"] { background: transparent; border: none; font-size: 1.1rem; font-weight: 800; color: var(--text); width: 60%; outline: none; }
+        .count-display { font-size: 3.5rem; font-weight: 900; text-align: center; margin: 15px 0; font-variant-numeric: tabular-nums; }
         
-        input[type="text"] {
-            background: transparent; border: none; font-size: 1.2rem; font-weight: 800;
-            color: var(--text); width: 80%; outline: none;
-        }
-
-        .count-display {
-            font-size: 3.5rem; font-weight: 900; text-align: center;
-            margin: 20px 0; font-variant-numeric: tabular-nums;
-        }
-
-        .btn-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; }
-
+        .btn-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
         button {
-            border: none; border-radius: 18px; padding: 18px;
-            font-weight: 700; font-size: 0.9rem; cursor: pointer;
-            background: var(--bg);
+            border: none; border-radius: 18px; padding: 16px; font-weight: 700; cursor: pointer;
+            background: var(--bg); color: var(--text);
             box-shadow: 6px 6px 12px var(--shadow-dark), -4px -4px 10px var(--shadow-light);
-            color: var(--text);
         }
-
-        button:active {
-            box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -2px -2px 6px var(--shadow-light);
-            transform: scale(0.97);
-        }
-
+        button:active { box-shadow: inset 4px 4px 8px var(--shadow-dark); transform: scale(0.97); }
         .btn-main { background: var(--accent); color: white; }
         .btn-timer-stop { background: var(--danger); color: white; }
         .btn-timer-start { background: var(--warning); color: #1b1d21; }
-        .btn-del { width: 40px; height: 40px; border-radius: 50%; color: var(--danger); padding:0; }
 
         .settings-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-            margin-top: 25px; font-size: 0.8rem; border-top: 1px solid rgba(255,255,255,0.05);
-            padding-top: 20px; color: #888;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;
+            font-size: 0.8rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; color: #888;
         }
 
-        input[type="number"], input[type="time"] {
-            border-radius: 10px; border: none; background: #111316; padding: 8px; margin-top: 6px;
-            color: var(--text); box-shadow: inset 2px 2px 5px #000; outline: none; width: 100%;
-        }
+        input[type="number"], input[type="time"] { border-radius: 8px; border: none; background: #111316; padding: 6px; color: var(--text); width: 100%; }
 
-        .diary-section { width: 100%; margin-top: 40px; margin-bottom: 50px; }
-        .diary-card {
-            background: var(--bg); border-radius: 25px; padding: 20px;
-            box-shadow: inset 6px 6px 12px var(--shadow-dark), inset -4px -4px 10px var(--shadow-light);
-        }
-        .diary-item {
-            padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.03);
-            display: flex; justify-content: space-between; font-size: 0.9rem;
-        }
+        .diary-section { width: 100%; margin-top: 30px; margin-bottom: 50px; }
+        .diary-card { background: var(--bg); border-radius: 20px; padding: 15px; box-shadow: inset 6px 6px 12px var(--shadow-dark); }
+        .diary-item { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.03); display: flex; justify-content: space-between; font-size: 0.85rem; }
 
-        .history-list {
-            margin-top: 15px; font-size: 0.75rem; color: #aaa;
-            background: rgba(0,0,0,0.2); border-radius: 12px; padding: 12px;
-        }
-
-        /* Кнопки бэкапа */
-        .backup-controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 20px;
-        }
-        .btn-backup {
-            padding: 12px;
-            font-size: 0.8rem;
-            background: #2d3138;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
+        .backup-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .btn-backup { padding: 10px; font-size: 0.75rem; background: #2d3138; }
     </style>
 </head>
 <body>
@@ -142,28 +92,25 @@
 <div class="container">
     <h1>discipline</h1>
     
-    <button onclick="addCounter()" style="width: 100%; margin-bottom: 35px; background: transparent; border: 2px dashed #444; box-shadow: none; color: #888;">
+    <button onclick="addCounter()" style="width: 100%; margin-bottom: 30px; background: transparent; border: 1px dashed #444; color: #666;">
         + ДОБАВИТЬ ПЛИТУ
     </button>
 
     <div id="counters-list"></div>
 
     <div class="diary-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="margin: 0;">📓 ЖУРНАЛ ЗАМЕРОВ</h3>
-        </div>
-        
+        <h3>📓 ЖУРНАЛ ЗАМЕРОВ</h3>
         <div class="diary-card" id="diary-logs"></div>
-
         <div class="backup-controls">
-            <button class="btn-backup" onclick="exportData()">💾 СОХРАНИТЬ В ФАЙЛ</button>
-            <button class="btn-backup" onclick="document.getElementById('importFile').click()">📂 ЗАГРУЗИТЬ ФАЙЛ</button>
+            <button class="btn-backup" onclick="exportData()">💾 СОХРАНИТЬ</button>
+            <button class="btn-backup" onclick="document.getElementById('importFile').click()">📂 ЗАГРУЗИТЬ</button>
             <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
         </div>
     </div>
 </div>
 
 <script>
+    const shamePhrases = ["ты меня подвел...", "я верил в тебя, а ты сдался.", "слабость берет верх?", "еще один день впустую.", "дисциплина — это не про тебя.", "твои оправдания ничего не стоят."];
     let appState = JSON.parse(localStorage.getItem('proCounter_vUltimate')) || { counters: [], diary: [] };
     let activeTimers = {};
 
@@ -172,82 +119,22 @@
         render();
     }
 
-    // Экспорт данных в JSON файл
-    function exportData() {
-        const dataStr = JSON.stringify(appState, null, 2);
-        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-        
-        const exportFileDefaultName = `discipline_backup_${new Date().toLocaleDateString()}.json`;
-        
-        const linkElement = document.createElement('a');
-        linkElement.setAttribute('href', dataUri);
-        linkElement.setAttribute('download', exportFileDefaultName);
-        linkElement.click();
-    }
-
-    // Импорт данных из JSON файла
-    function importData(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const importedData = JSON.parse(e.target.result);
-                if (importedData.counters && importedData.diary) {
-                    if (confirm("Вы уверены? Это заменит все текущие данные данными из файла.")) {
-                        appState = importedData;
-                        save();
-                        alert("Данные успешно загружены!");
-                    }
-                } else {
-                    alert("Ошибка: Неверный формат файла.");
-                }
-            } catch (err) {
-                alert("Ошибка при чтении файла.");
-            }
-        };
-        reader.readAsText(file);
-    }
-
     function addCounter() {
         appState.counters.push({
-            id: Date.now(),
-            name: "Счётчик",
-            value: 0,
-            target: 0,
-            resetTime: "00:00",
-            lastResetTS: 0,
-            isTimer: false,
-            timerRunning: false,
-            startTime: null,
-            tempValue: 0,
-            history: []
+            id: Date.now(), name: "Счётчик", value: 0, target: 10,
+            resetTime: "00:00", lastResetTS: Date.now(),
+            streak: 0, shameMsg: "", inRedemption: false,
+            isTimer: false, timerRunning: false, startTime: null, tempValue: 0, history: []
         });
         save();
-    }
-
-    function deleteCounter(id) {
-        if(confirm("Удалить?")) {
-            clearInterval(activeTimers[id]);
-            appState.counters = appState.counters.filter(c => c.id !== id);
-            save();
-        }
-    }
-
-    function updateCounter(id, field, val) {
-        const c = appState.counters.find(x => x.id === id);
-        if (c) { c[field] = val; save(); }
     }
 
     function toggleTimer(id) {
         const c = appState.counters.find(x => x.id === id);
         if (!c) return;
-        
         if (!c.timerRunning) {
             c.startTime = Date.now();
             c.timerRunning = true;
-            c.tempValue = 0;
             activeTimers[id] = setInterval(() => {
                 c.tempValue = Math.floor((Date.now() - c.startTime) / 1000);
                 const disp = document.getElementById(`display-${id}`);
@@ -255,9 +142,7 @@
             }, 1000);
         } else {
             clearInterval(activeTimers[id]);
-            const finalDiff = Math.floor((Date.now() - c.startTime) / 1000);
-            c.value += finalDiff;
-            c.history.push(`${new Date().toLocaleTimeString()} — ${finalDiff} сек.`);
+            c.value += Math.floor((Date.now() - c.startTime) / 1000);
             c.timerRunning = false;
             c.tempValue = 0;
             save();
@@ -275,13 +160,28 @@
             resetPoint.setHours(parseInt(h), parseInt(m), 0, 0);
 
             if (now >= resetPoint && c.lastResetTS < resetPoint.getTime()) {
-                if (c.value > 0 || c.history.length > 0) {
-                    appState.diary.push({ 
-                        date: new Date(c.lastResetTS || Date.now()).toLocaleDateString(), 
-                        name: c.name, 
-                        val: (c.isTimer ? formatTime(c.value) : c.value) 
-                    });
+                const effectiveTarget = c.inRedemption ? (c.target * 2) : c.target;
+                const success = c.value >= effectiveTarget;
+
+                if (success) {
+                    c.streak++;
+                    c.shameMsg = "";
+                    c.inRedemption = false;
+                } else {
+                    if (c.streak > 0 || c.value > 0) {
+                        c.shameMsg = shamePhrases[Math.floor(Math.random() * shamePhrases.length)];
+                        c.inRedemption = true;
+                    }
+                    c.streak = 0;
                 }
+
+                appState.diary.push({ 
+                    date: new Date(c.lastResetTS).toLocaleDateString(), 
+                    name: c.name, 
+                    val: (c.isTimer ? formatTime(c.value) : c.value),
+                    status: success ? '✅' : '❌'
+                });
+
                 c.value = 0;
                 c.history = [];
                 c.lastResetTS = Date.now();
@@ -294,65 +194,73 @@
     function render() {
         const list = document.getElementById('counters-list');
         list.innerHTML = '';
-
         appState.counters.forEach(c => {
-            const isReached = c.target > 0 && c.value >= c.target;
+            const effectiveTarget = c.inRedemption ? (c.target * 2) : c.target;
+            const isReached = c.value >= effectiveTarget;
+
             const card = document.createElement('div');
             card.className = `card ${isReached ? 'target-reached' : ''} ${c.timerRunning ? 'timer-active' : ''}`;
-            
             card.innerHTML = `
-                <div class="card-header">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
                     <input type="text" value="${c.name}" onchange="updateCounter(${c.id}, 'name', this.value)">
-                    <button class="btn-del" onclick="deleteCounter(${c.id})">✕</button>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        ${c.streak > 0 ? `<span class="streak-badge">🔥 ${c.streak}</span>` : ''}
+                        ${c.inRedemption ? `<span class="redemption-badge">X2</span>` : ''}
+                        <button onclick="deleteCounter(${c.id})" style="box-shadow:none; padding:5px; color:var(--danger); background:none;">✕</button>
+                    </div>
                 </div>
 
-                <div class="count-display" id="display-${c.id}">
-                    ${c.isTimer ? formatTime(c.value + (c.tempValue || 0)) : c.value}
-                </div>
+                <div class="count-display" id="display-${c.id}">${c.isTimer ? formatTime(c.value + (c.tempValue || 0)) : c.value}</div>
 
                 <div class="btn-grid">
                     ${c.isTimer ? 
-                        `<button class="${c.timerRunning ? 'btn-timer-stop' : 'btn-timer-start'}" onclick="toggleTimer(${c.id})">
-                            ${c.timerRunning ? '🛑 СТОП' : '⏱ СТАРТ'}
-                        </button>` :
+                        `<button class="${c.timerRunning ? 'btn-timer-stop' : 'btn-timer-start'}" onclick="toggleTimer(${c.id})">${c.timerRunning ? '🛑 СТОП' : '⏱ СТАРТ'}</button>` :
                         `<button class="btn-main" onclick="changeVal(${c.id}, 1)">+1</button>`
                     }
                     <button onclick="updateCounter(${c.id}, 'value', 0)">СБРОС</button>
                 </div>
 
+                ${c.shameMsg ? `<div class="shame-msg">${c.shameMsg}</div>` : ''}
+
                 <div class="settings-grid">
-                    <div class="setting-item">Цель: <input type="number" value="${c.target}" onchange="updateCounter(${c.id}, 'target', parseInt(this.value))"></div>
-                    <div class="setting-item">Сброс: <input type="time" value="${c.resetTime}" onchange="updateCounter(${c.id}, 'resetTime', this.value)"></div>
-                    <div style="grid-column: span 2; margin-top: 15px;">
-                        <label style="display:flex; align-items:center; gap:10px;"><input type="checkbox" ${c.isTimer ? 'checked' : ''} onchange="updateCounter(${c.id}, 'isTimer', this.checked)"> Режим замера</label>
+                    <div>Цель: <input type="number" value="${c.target}" onchange="updateCounter(${c.id}, 'target', parseInt(this.value))"></div>
+                    <div>Сброс: <input type="time" value="${c.resetTime}" onchange="updateCounter(${c.id}, 'resetTime', this.value)"></div>
+                    <div style="grid-column: span 2; margin-top: 10px;">
+                        <label><input type="checkbox" ${c.isTimer ? 'checked' : ''} onchange="updateCounter(${c.id}, 'isTimer', this.checked)"> Режим замера</label>
                     </div>
                 </div>
-                ${c.history.length > 0 ? `<div class="history-list">${c.history.slice(-3).reverse().join('<br>')}</div>` : ''}
             `;
             list.appendChild(card);
         });
         updateDiaryDisplay();
     }
 
-    function changeVal(id, delta) {
-        const c = appState.counters.find(x => x.id === id);
-        if (c) { c.value += delta; save(); }
-    }
-
+    function changeVal(id, delta) { const c = appState.counters.find(x => x.id === id); if (c) { c.value += delta; save(); } }
+    function updateCounter(id, f, v) { const c = appState.counters.find(x => x.id === id); if (c) { c[f] = v; save(); } }
+    function deleteCounter(id) { if(confirm("Удалить?")) { clearInterval(activeTimers[id]); appState.counters = appState.counters.filter(c => c.id !== id); save(); } }
+    
     function updateDiaryDisplay() {
-        const diaryDiv = document.getElementById('diary-logs');
-        diaryDiv.innerHTML = appState.diary.length ? appState.diary.slice(-15).reverse().map(l => `
-            <div class="diary-item"><span>${l.date} — ${l.name}</span> <b>${l.val}</b></div>
+        const div = document.getElementById('diary-logs');
+        div.innerHTML = appState.diary.length ? appState.diary.slice(-15).reverse().map(l => `
+            <div class="diary-item"><span>${l.date} — ${l.name}</span> <b>${l.val} ${l.status || ''}</b></div>
         `).join('') : '<p style="text-align:center; color:#555;">Пусто</p>';
     }
 
-    function formatTime(s) {
-        const m = Math.floor(s / 60);
-        const sec = s % 60;
-        return `${m}:${sec.toString().padStart(2, '0')}`;
+    function formatTime(s) { return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`; }
+
+    function exportData() {
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(JSON.stringify(appState, null, 2));
+        const link = document.createElement('a'); link.setAttribute('href', dataUri);
+        link.setAttribute('download', `discipline_backup_${new Date().toLocaleDateString()}.json`); link.click();
     }
 
-    setInterval(checkResets, 10000);
+    function importData(e) {
+        const reader = new FileReader();
+        reader.onload = (ev) => { try { appState = JSON.parse(ev.target.result); save(); alert("Загружено!"); } catch(e) { alert("Ошибка файла"); } };
+        reader.readAsText(e.target.files[0]);
+    }
+
+    setInterval(checkResets, 15000);
     checkResets();
     render();
 </script>
